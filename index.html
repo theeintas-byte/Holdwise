@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Holdwise Prototype</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23188038' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='23 6 13.5 15.5 8.5 10.5 1 18'></polyline><polyline points='17 6 23 6 23 12'></polyline></svg>">
+<!-- Removed all external chart libraries. Using zero-dependency Vanilla Canvas. -->
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Mali:wght@400;500;600;700&display=swap');
+
+    :root {
+        --bg-color: #f7f7f5;
+        --text-color: #1a1a1a;
+        --border-color: #e0e0e0;
+        --accent-color: #d93025;
+        --success-color: #188038;
+        --font-serif: 'Mali', cursive;
+        --font-sans: 'Mali', cursive;
+    }
+
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #e5e5e5;
+        color: var(--text-color);
+        font-family: var(--font-sans);
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+    }
+
+    .mobile-container {
+        width: 100%;
+        max-width: 414px;
+        min-height: 100vh;
+        background: var(--bg-color);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        padding: 24px;
+        box-sizing: border-box;
+        position: relative;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    h1, h2, h3 {
+        font-family: var(--font-sans);
+        font-weight: 600;
+        margin-top: 0;
+        color: #000;
+    }
+
+    h1 {
+        font-size: 22px;
+        margin-bottom: 24px;
+        text-align: center;
+        letter-spacing: -0.5px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        font-family: var(--font-sans);
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 8px;
+        color: #444;
+    }
+
+    input, select, textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background: #fff;
+        font-family: var(--font-serif);
+        font-size: 16px;
+        color: var(--text-color);
+        box-sizing: border-box;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: #333;
+        box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
+    }
+
+    textarea {
+        resize: vertical;
+        min-height: 80px;
+        line-height: 1.5;
+    }
+
+    .calc-feedback {
+        font-family: var(--font-sans);
+        font-size: 12px;
+        margin-top: 6px;
+        color: #666;
+    }
+    .calc-feedback.profit { color: var(--success-color); font-weight: 500; }
+    .calc-feedback.loss { color: var(--accent-color); font-weight: 500; }
+
+    button {
+        width: 100%;
+        padding: 16px;
+        background-color: var(--text-color);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        font-family: var(--font-sans);
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        margin-top: 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 14px rgba(0,0,0,0.12), 0 3px 6px rgba(0,0,0,0.08);
+    }
+
+    button:active {
+        transform: scale(0.96) translateY(2px);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    button.secondary {
+        background-color: transparent;
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        box-shadow: none;
+    }
+    button.secondary:hover {
+        background-color: #f7f7f5;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    
+    button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .toggle-group {
+        display: flex;
+        gap: 8px;
+    }
+    .toggle-btn {
+        flex: 1;
+        background: #fff;
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+        padding: 10px;
+        margin: 0;
+        font-size: 14px;
+        box-shadow: none;
+    }
+    .toggle-btn.active {
+        background: var(--text-color);
+        color: #fff;
+        border-color: var(--text-color);
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        transform: scale(0.98);
+    }
+
+    .page {
+        display: none;
+        flex: 1;
+    }
+    .page.active {
+        display: flex;
+        flex-direction: column;
+        animation: pageSlide 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes pageSlide {
+        0% { opacity: 0; transform: translateY(15px) scale(0.98); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .chart-container {
+        width: 100%;
+        height: 300px;
+        margin-bottom: 24px;
+        background: #fff;
+        border-radius: 12px;
+        box-sizing: border-box;
+        border: 1px solid var(--border-color);
+        overflow: hidden; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    #stockChart {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+
+    /* Stock Cards */
+    .stock-card {
+        background: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+    .stock-card:hover {
+        border-color: #999;
+        box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+        transform: translateY(-2px);
+    }
+    .stock-card:active {
+        transform: scale(0.96);
+        background: #fcfcfc;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .stock-symbol {
+        font-family: var(--font-sans);
+        font-weight: 600;
+        font-size: 18px;
+    }
+    .stock-name {
+        font-size: 14px;
+        color: #666;
+    }
+    .stock-price {
+        font-family: var(--font-sans);
+        font-weight: 600;
+        font-size: 16px;
+    }
+
+    /* Modal for Cooling Off */
+    .modal-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.6);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+        padding: 24px;
+        backdrop-filter: blur(2px);
+    }
+
+    .modal-overlay.active {
+        display: flex;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .modal-content {
+        background: var(--bg-color);
+        padding: 24px;
+        border-radius: 16px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    .modal-content h3 {
+        font-size: 18px;
+        margin-bottom: 12px;
+        color: var(--accent-color);
+    }
+
+    .modal-content p {
+        margin-bottom: 24px;
+        font-size: 15px;
+        line-height: 1.5;
+        color: #444;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        background: #eee;
+        font-family: var(--font-sans);
+        font-size: 14px;
+        font-weight: 500;
+    /* Product-to-Company View */
+    .product-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: #f0f0ee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        margin-right: 12px;
+        flex-shrink: 0;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .product-tag {
+        font-size: 11px;
+        color: #777;
+        margin-top: 2px;
+        line-height: 1.3;
+    }
+
+    /* Thesis Evaluation & Stress Test Cards */
+    .card-insight {
+        background: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 14px;
+        margin-top: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    }
+    .metric-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin: 10px 0;
+    }
+    .metric-item {
+        background: #fafaf8;
+        border: 1px solid #ededed;
+        border-radius: 8px;
+        padding: 8px;
+        text-align: center;
+    }
+    .metric-val {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-color);
+    }
+    .metric-lbl {
+        font-size: 11px;
+        color: #777;
+        margin-top: 2px;
+    }
+    .chip-btn {
+        background: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 6px 8px;
+        font-size: 11px;
+        color: #444;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        margin: 0;
+        width: auto;
+        box-shadow: none;
+        flex: 1;
+        font-weight: 500;
+    }
+    .chip-btn.active {
+        background: var(--text-color);
+        color: #fff;
+        border-color: var(--text-color);
+    }
+    .stress-row {
+        margin-bottom: 8px;
+    }
+    .stress-row-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 4px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    /* AI Sell Friction Box */
+    .friction-thesis-box {
+        background: #fff;
+        border: 1px dashed #ccc;
+        border-radius: 10px;
+        padding: 12px;
+        text-align: left;
+        font-size: 13px;
+        color: #444;
+        margin: 12px 0;
+        line-height: 1.4;
+    }
+    .friction-stats {
+        display: flex;
+        justify-content: space-between;
+        background: #f4f4f2;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 12px;
+        margin-bottom: 12px;
+        font-weight: 600;
+    }
+</style>
+</head>
+<body class="lang-en">
+
+<div class="mobile-container">
+    
+    <button onclick="toggleLang()" style="position:absolute; top: 16px; right: 16px; background: none; color: #666; border: 1px solid #ccc; border-radius: 20px; padding: 4px 12px; width: auto; font-size: 12px; margin: 0; z-index: 10;">🇹🇭 TH / EN</button>
+    
+    <!-- PAGE 1: ENTER PROTOTYPE -->
+    <div id="page-landing" class="page active" style="justify-content: center; text-align: center;">
+        <h1 style="font-size: 36px; margin-bottom: 8px;">Holdwise</h1>
+        <p style="color: #666; margin-bottom: 40px; font-family: var(--font-sans);" data-en="Invest With Your Plan, Not Your Panic.">Invest With Your Plan, Not Your Panic.</p>
+        <button onclick="goToPage('page-select-stock')" data-en="Enter Prototype">Enter Prototype</button>
+    </div>
+
+    <!-- PAGE 2: SELECT STOCK -->
+    <div id="page-select-stock" class="page">
+        <h1 data-en="Select a Stock">Select a Stock</h1>
+        
+        <!-- Mode Switch: Companies vs Products -->
+        <div class="toggle-group" style="margin-bottom: 16px;">
+            <button class="toggle-btn active" id="btnModeCompany" onclick="setSelectStockMode('company'); return false;" data-en="🏢 Companies">🏢 Companies</button>
+            <button class="toggle-btn" id="btnModeProduct" onclick="setSelectStockMode('product'); return false;" data-en="🛍️ Products → Ownership">🛍️ Products → Ownership</button>
+        </div>
+
+        <p id="selectStockSubtitle" style="margin-bottom: 18px; color: #555; text-align: center; font-size: 13px;" data-en="Choose an asset to invest.">Choose an asset to invest.</p>
+        
+        <!-- Standard Company List -->
+        <div id="stockListCompany" style="display: block;">
+            <div class="stock-card" onclick="selectStock('AAPL', 150.25, 'Apple Inc.')">
+                <div>
+                    <div class="stock-symbol">AAPL</div>
+                    <div class="stock-name">Apple Inc.</div>
+                </div>
+                <div class="stock-price">$150.25</div>
+            </div>
+            
+            <div class="stock-card" onclick="selectStock('TSLA', 210.50, 'Tesla Inc.')">
+                <div>
+                    <div class="stock-symbol">TSLA</div>
+                    <div class="stock-name">Tesla Inc.</div>
+                </div>
+                <div class="stock-price">$210.50</div>
+            </div>
+            
+            <div class="stock-card" onclick="selectStock('NVDA', 450.00, 'Nvidia')">
+                <div>
+                    <div class="stock-symbol">NVDA</div>
+                    <div class="stock-name">Nvidia</div>
+                </div>
+                <div class="stock-price">$450.00</div>
+            </div>
+
+            <div class="stock-card" onclick="selectStock('NKE', 82.50, 'Nike Inc.')">
+                <div>
+                    <div class="stock-symbol">NKE</div>
+                    <div class="stock-name">Nike Inc.</div>
+                </div>
+                <div class="stock-price">$82.50</div>
+            </div>
+
+            <div class="stock-card" onclick="selectStock('SBUX', 95.00, 'Starbucks Corp.')">
+                <div>
+                    <div class="stock-symbol">SBUX</div>
+                    <div class="stock-name">Starbucks Corp.</div>
+                </div>
+                <div class="stock-price">$95.00</div>
+            </div>
+        </div>
+
+        <!-- Product-to-Company List (Curb impulse spending / retail therapy) -->
+        <div id="stockListProduct" style="display: none;">
+            <div class="stock-card" onclick="selectStock('NKE', 82.50, 'Nike Inc.', 'Nike Air Force 1')">
+                <div style="display: flex; align-items: center;">
+                    <div class="product-avatar">👟</div>
+                    <div>
+                        <div class="stock-symbol" style="font-size: 15px;" data-en="Nike Air Force 1">Nike Air Force 1</div>
+                        <div class="product-tag" data-en="Instead of $120 shoes on Shopee ➔ Own Nike Inc. (NKE)">Instead of $120 shoes on Shopee ➔ Own Nike Inc. (NKE)</div>
+                    </div>
+                </div>
+                <div class="stock-price" style="font-size: 14px;">$82.50</div>
+            </div>
+
+            <div class="stock-card" onclick="selectStock('AAPL', 150.25, 'Apple Inc.', 'iPhone 16 Pro')">
+                <div style="display: flex; align-items: center;">
+                    <div class="product-avatar">📱</div>
+                    <div>
+                        <div class="stock-symbol" style="font-size: 15px;" data-en="iPhone 16 Pro">iPhone 16 Pro</div>
+                        <div class="product-tag" data-en="Instead of gadget impulse buys ➔ Own Apple Inc. (AAPL)">Instead of gadget impulse buys ➔ Own Apple Inc. (AAPL)</div>
+                    </div>
+                </div>
+                <div class="stock-price" style="font-size: 14px;">$150.25</div>
+            </div>
+
+            <div class="stock-card" onclick="selectStock('SBUX', 95.00, 'Starbucks Corp.', 'Daily Coffee Habit')">
+                <div style="display: flex; align-items: center;">
+                    <div class="product-avatar">☕</div>
+                    <div>
+                        <div class="stock-symbol" style="font-size: 15px;" data-en="Daily Starbucks Latte">Daily Starbucks Latte</div>
+                        <div class="product-tag" data-en="Skip 20 cups of takeaway coffee ➔ Own Starbucks (SBUX)">Skip 20 cups of takeaway coffee ➔ Own Starbucks (SBUX)</div>
+                    </div>
+                </div>
+                <div class="stock-price" style="font-size: 14px;">$95.00</div>
+            </div>
+
+            <div class="stock-card" onclick="selectStock('TSLA', 210.50, 'Tesla Inc.', 'Tesla Model Y')">
+                <div style="display: flex; align-items: center;">
+                    <div class="product-avatar">⚡</div>
+                    <div>
+                        <div class="stock-symbol" style="font-size: 15px;" data-en="Tesla Model Y">Tesla Model Y</div>
+                        <div class="product-tag" data-en="Instead of luxury car payments ➔ Own Tesla equity (TSLA)">Instead of luxury car payments ➔ Own Tesla equity (TSLA)</div>
+                    </div>
+                </div>
+                <div class="stock-price" style="font-size: 14px;">$210.50</div>
+            </div>
+
+            <div class="stock-card" onclick="selectStock('NVDA', 450.00, 'Nvidia', 'GeForce RTX 4090')">
+                <div style="display: flex; align-items: center;">
+                    <div class="product-avatar">🎮</div>
+                    <div>
+                        <div class="stock-symbol" style="font-size: 15px;" data-en="GeForce RTX 4090">GeForce RTX 4090</div>
+                        <div class="product-tag" data-en="Instead of $1,600 gaming gear ➔ Own Nvidia (NVDA)">Instead of $1,600 gaming gear ➔ Own Nvidia (NVDA)</div>
+                    </div>
+                </div>
+                <div class="stock-price" style="font-size: 14px;">$450.00</div>
+            </div>
+        </div>
+
+        <button class="secondary" style="margin-top: 16px;" onclick="goToPage('page-landing')" data-en="Back">Back</button>
+    </div>
+
+    <!-- PAGE 3: PLANLOCK -->
+    <div id="page-planlock" class="page">
+        <h1><span data-en="PlanLock: ">PlanLock: </span><span id="planStockName" style="font-weight: 400; color: #666;">AAPL</span></h1>
+        
+        <div style="flex: 1; overflow-y: auto; padding-bottom: 20px; padding-right: 4px;">
+            <div class="calc-feedback" style="margin-bottom: 20px; font-size: 14px;">
+                <span data-en="Current Market Price: ">Current Market Price: </span>$<span id="marketPriceDisplay">150.25</span>
+            </div>
+
+            <div class="form-group">
+                <label data-en="Investment Amount ($ USD)">Investment Amount ($ USD)</label>
+                <input type="number" id="buyAmountFiat" value="1500" step="10" oninput="updateCalculations()">
+                <div class="calc-feedback"><span data-en="Estimated Units: ">Estimated Units: </span><span id="unitsDisplay">9.9833</span></div>
+            </div>
+
+            <div class="form-group">
+                <label data-en="Order Type">Order Type</label>
+                <div class="toggle-group" style="margin-bottom: 12px;">
+                    <button class="toggle-btn active" id="btnMarket" onclick="setOrderType('market'); return false;" data-en="Market">Market</button>
+                    <button class="toggle-btn" id="btnLimit" onclick="setOrderType('limit'); return false;" data-en="Limit">Limit</button>
+                </div>
+                
+                <div id="limitInputDiv" style="display: none;">
+                    <input type="number" id="buyPrice" value="150.25" step="0.01" oninput="updateCalculations()">
+                </div>
+                <div id="priceComparison" class="calc-feedback"></div>
+            </div>
+
+            <div class="form-group">
+                <label data-en="Take Profit Target">Take Profit Target</label>
+                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <select id="tpMode" onchange="updateCalculations()" style="flex: 1;">
+                        <option value="fiat" data-en="Expected Gain ($)">Expected Gain ($)</option>
+                        <option value="price" data-en="Target Price ($)">Target Price ($)</option>
+                    </select>
+                </div>
+                <input type="number" id="tpInput" value="300" step="1" oninput="updateCalculations()">
+                <div id="tpFeedback" class="calc-feedback profit"></div>
+            </div>
+
+            <div class="form-group">
+                <label data-en="Stop Loss Limit">Stop Loss Limit</label>
+                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <select id="slMode" onchange="updateCalculations()" style="flex: 1;">
+                        <option value="fiat" data-en="Expected Loss ($)">Expected Loss ($)</option>
+                        <option value="price" data-en="Stop Price ($)">Stop Price ($)</option>
+                    </select>
+                </div>
+                <input type="number" id="slInput" value="150" step="1" oninput="updateCalculations()">
+                <div id="slFeedback" class="calc-feedback loss"></div>
+            </div>
+
+            <!-- Strategy & Thesis Type -->
+            <div class="form-group">
+                <label data-en="Strategy & Thesis Framework">Strategy & Thesis Framework</label>
+                <div class="toggle-group" style="margin-bottom: 10px;">
+                    <button class="toggle-btn active" id="btnThesisPrice" onclick="setThesisStrategy('price'); return false;" data-en="📈 Price-Based (Technical)">📈 Price-Based (Technical)</button>
+                    <button class="toggle-btn" id="btnThesisEvent" onclick="setThesisStrategy('event'); return false;" data-en="🏢 Event-Based (Fundamentals)">🏢 Event-Based (Fundamentals)</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label data-en="Investment Thesis">Investment Thesis</label>
+                <textarea id="thesisInput" placeholder="Briefly propose why you invest in this stock..."></textarea>
+            </div>
+
+            <!-- Dynamic AI Evaluation & Stress Test Card -->
+            <div class="card-insight" id="aiThesisEvaluationCard" style="margin-bottom: 20px;">
+                <!-- Mode 1: Price-Based 2-Year Backtest -->
+                <div id="evalPriceCard">
+                    <div style="font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
+                        <span data-en="📊 2-Year Historical Strategy Backtest">📊 2-Year Historical Strategy Backtest</span>
+                        <span style="font-size: 10px; background: #e8f0fe; color: #1967d2; padding: 2px 6px; border-radius: 10px;" data-en="Simulated Edge">Simulated Edge</span>
+                    </div>
+                    <div style="font-size: 11px; color: #777; margin-top: 2px;" data-en="Performance across similar technical setups over the last 24 months.">Performance across similar technical setups over the last 24 months.</div>
+                    
+                    <div class="metric-grid">
+                        <div class="metric-item">
+                            <div id="backtestWinRate" class="metric-val" style="color: var(--success-color);">64.3%</div>
+                            <div class="metric-lbl" data-en="Win Rate (2-Yr)">Win Rate (2-Yr)</div>
+                        </div>
+                        <div class="metric-item">
+                            <div id="backtestProfitFactor" class="metric-val">2.18x</div>
+                            <div class="metric-lbl" data-en="Profit Factor">Profit Factor</div>
+                        </div>
+                        <div class="metric-item">
+                            <div id="backtestMaxDd" class="metric-val" style="color: var(--accent-color);">-11.4%</div>
+                            <div class="metric-lbl" data-en="Max Drawdown">Max Drawdown</div>
+                        </div>
+                        <div class="metric-item">
+                            <div id="backtestReturn" class="metric-val" style="color: var(--success-color);">+43.2%</div>
+                            <div class="metric-lbl" data-en="2-Yr Strategy Return">2-Yr Strategy Return</div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; height: 6px; border-radius: 4px; overflow: hidden; margin: 8px 0;">
+                        <div id="winBar" style="width: 64%; background: var(--success-color);"></div>
+                        <div id="lossBar" style="width: 36%; background: var(--accent-color);"></div>
+                    </div>
+
+                    <div id="backtestInsight" style="font-size: 11px; color: #555; line-height: 1.4; background: #fafaf8; border-radius: 8px; padding: 8px; margin-top: 6px;">
+                        <b>AI Key Insight:</b> In 28 historical setups, strictly holding until TP or SL was what generated the +43% gain. Panicking out early reduced average profit by 31%.
+                    </div>
+                </div>
+
+                <!-- Mode 2: Event-Based Intrinsic Value & Scenario Stress Test -->
+                <div id="evalEventCard" style="display: none;">
+                    <div style="font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
+                        <span data-en="🏢 Intrinsic Value & Stress Test">🏢 Intrinsic Value & Stress Test</span>
+                        <span style="font-size: 10px; background: #e6f4ea; color: #137333; padding: 2px 6px; border-radius: 10px;" data-en="DCF Model">DCF Model</span>
+                    </div>
+                    <div style="font-size: 11px; color: #777; margin-top: 2px;" data-en="Stress-test fair value against earnings shocks, dividends, and interest rates.">Stress-test fair value against earnings shocks, dividends, and interest rates.</div>
+                    
+                    <div class="friction-stats" style="margin-top: 8px;">
+                        <div><span data-en="Base Intrinsic: ">Base Intrinsic: </span><b>$<span id="baseIntrinsicDisplay">168.00</span></b></div>
+                        <div><span data-en="Safety Margin: ">Safety Margin: </span><b style="color: var(--success-color);" id="marginSafetyDisplay">+11.8%</b></div>
+                    </div>
+
+                    <div class="stress-row">
+                        <div class="stress-row-label"><span data-en="Earnings Shock:">Earnings Shock:</span> <span id="valEarningsLabel" style="color:#666;">0% In-Line</span></div>
+                        <div style="display: flex; gap: 4px;">
+                            <button class="chip-btn" onclick="setStressParam('earnings', -0.15, this); return false;">-15% Miss</button>
+                            <button class="chip-btn active" onclick="setStressParam('earnings', 0, this); return false;">0% In-Line</button>
+                            <button class="chip-btn" onclick="setStressParam('earnings', 0.15, this); return false;">+15% Beat</button>
+                        </div>
+                    </div>
+
+                    <div class="stress-row">
+                        <div class="stress-row-label"><span data-en="Dividend / Cashflow:">Dividend / Cashflow:</span> <span id="valDividendLabel" style="color:#666;">Normal</span></div>
+                        <div style="display: flex; gap: 4px;">
+                            <button class="chip-btn" onclick="setStressParam('dividend', -0.06, this); return false;">-20% Cut</button>
+                            <button class="chip-btn active" onclick="setStressParam('dividend', 0, this); return false;">Normal</button>
+                            <button class="chip-btn" onclick="setStressParam('dividend', 0.05, this); return false;">+10% Growth</button>
+                        </div>
+                    </div>
+
+                    <div class="stress-row">
+                        <div class="stress-row-label"><span data-en="Fed / Risk-Free Rate:">Fed / Risk-Free Rate:</span> <span id="valRateLabel" style="color:#666;">Base (4.5%)</span></div>
+                        <div style="display: flex; gap: 4px;">
+                            <button class="chip-btn" onclick="setStressParam('rate', -0.08, this); return false;">5.5% High</button>
+                            <button class="chip-btn active" onclick="setStressParam('rate', 0, this); return false;">4.5% Base</button>
+                            <button class="chip-btn" onclick="setStressParam('rate', 0.08, this); return false;">3.0% Low</button>
+                        </div>
+                    </div>
+
+                    <div style="background: #fafaf8; border: 1px solid #ededed; border-radius: 8px; padding: 10px; margin-top: 8px;">
+                        <div style="font-size: 13px; font-weight: 700; display: flex; justify-content: space-between;">
+                            <span data-en="Stress-Tested Value: ">Stress-Tested Value: </span>
+                            <span id="stressedFairValue" style="color: var(--text-color);">$168.00</span>
+                        </div>
+                        <div id="stressTestVerdict" style="font-size: 11px; color: #555; margin-top: 6px; line-height: 1.4;">
+                            Even under this stress test, the firm's intrinsic floor remains above your Stop Loss limit ($135.00).
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label data-en="Why this TP/SL?">Why this TP/SL?</label>
+                <textarea id="reasonInput" placeholder="Reasoning for your chosen exit points..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label data-en="Investment Horizon">Investment Horizon</label>
+                <select id="horizon">
+                    <option value="7" data-en="7 Days">7 Days</option>
+                    <option value="30" data-en="30 Days" selected>30 Days</option>
+                    <option value="90" data-en="90 Days">90 Days</option>
+                    <option value="365" data-en="1 Year">1 Year</option>
+                </select>
+                <div class="calc-feedback" data-en="If the price doesn't move by this time, you can review manually.">If the price doesn't move by this time, you can review manually.</div>
+            </div>
+        </div>
+
+        <button onclick="goToSimulation()" data-en="Lock Plan & View Chart">Lock Plan & View Chart</button>
+        <button class="secondary" onclick="goToPage('page-select-stock')" data-en="Back">Back</button>
+    </div>
+
+    <!-- PAGE 4: SIMULATION -->
+    <div id="page-simulation" class="page">
+        <h1 data-en="Simulated Market">Simulated Market</h1>
+        
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div id="simStatus" class="status-badge">Status: Holding</div>
+            <div id="simCurrentPrice" style="font-family: var(--font-sans); font-size: 32px; font-weight: 600; letter-spacing: -1px;">$0.00</div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="stockChart"></canvas>
+        </div>
+
+        <button id="simButton" onclick="runSimulation()" data-en="Start Simulation">Start Simulation</button>
+        <button id="panicSellBtn" class="secondary" style="display: none; color: #d93025; border-color: #f5c6cb; font-size: 14px; padding: 12px; margin-top: 8px;" onclick="triggerSellFriction()" data-en="✋ Sell Position Early">✋ Sell Position Early</button>
+        <button id="repeatBtn" class="secondary" style="display: none; border-color: var(--text-color); font-weight: 600;" onclick="resetToBeginning()" data-en="Repeat from Beginning">Repeat from Beginning</button>
+        <button id="backBtn" class="secondary" onclick="goToPage('page-planlock')" data-en="Back to Adjust TP/SL">Back to Adjust TP/SL</button>
+    </div>
+
+    <!-- MODAL: COOLING OFF -->
+    <div id="coolingOffModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 data-en="⚠️ Your portfolio is down">⚠️ Your portfolio is down</h3>
+            <p data-en="The stock has dropped significantly.<br><br>Does this change your original investment thesis?">The stock has dropped significantly.<br><br>Does this change your original investment thesis?</p>
+            <button onclick="closeModal('review')" data-en="Review Plan">Review Plan</button>
+            <button class="secondary" onclick="closeModal('wait')" data-en="Wait 24 Hours">Wait 24 Hours</button>
+            <button class="secondary" style="color: var(--accent-color); border-color: #f5c6cb; background: #fff5f5;" onclick="closeModal('friction')" data-en="Sell Anyway">Sell Anyway</button>
+        </div>
+    </div>
+
+    <!-- MODAL: AI SELL REFLECTION & FRICTION PROTOCOL -->
+    <div id="aiSellFrictionModal" class="modal-overlay">
+        <div class="modal-content" style="max-height: 90vh; overflow-y: auto; text-align: left;">
+            <div style="text-align: center; margin-bottom: 12px;">
+                <h3 style="margin-bottom: 4px; color: #d93025;" data-en="🛡️ Holdwise Reflection Check">🛡️ Holdwise Reflection Check</h3>
+                <div style="font-size: 12px; color: #666;" data-en="Review your thesis before making an emotional decision.">Review your thesis before making an emotional decision.</div>
+            </div>
+
+            <div class="friction-stats">
+                <div><span data-en="Current: ">Current: </span><span id="frictionCurrentPrice">$0.00</span></div>
+                <div id="frictionPnL">$0.00</div>
+            </div>
+
+            <div style="font-size: 12px; font-weight: 700; color: #333; margin-bottom: 4px;" data-en="Your Original Investment Thesis:">Your Original Investment Thesis:</div>
+            <div class="friction-thesis-box" id="frictionThesisDisplay">
+                "No thesis entered. You entered this trade with an impulse mindset."
+            </div>
+
+            <div style="font-size: 12px; font-weight: 700; color: #333; margin-bottom: 4px;" data-en="AI Plan Reflection:">AI Plan Reflection:</div>
+            <div id="frictionAiReflection" style="font-size: 12px; color: #555; line-height: 1.45; background: #fdf8e2; border: 1px solid #fae8a4; border-radius: 8px; padding: 10px; margin-bottom: 14px;">
+                Checking your parameters...
+            </div>
+
+            <div style="font-size: 11px; color: #888; text-align: center; margin-bottom: 10px;" data-en="Holdwise will never block your legal right to sell, but requires 5 seconds of calm reflection to curb panic.">
+                Holdwise will never block your legal right to sell, but requires 5 seconds of calm reflection to curb panic.
+            </div>
+
+            <button onclick="closeSellFriction(false)" data-en="Stick to Plan (Keep Holding)" style="margin-top: 0;">Stick to Plan (Keep Holding)</button>
+            <button id="btnOverrideSell" class="secondary" style="color: #d93025; border-color: #f5c6cb; margin-top: 8px;" onclick="closeSellFriction(true)" disabled>
+                ⏳ Reflecting: 5s remaining...
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let currentLang = 'en';
+    const dict = {
+        'Invest With Your Plan, Not Your Panic.': 'ลงทุนตามแผน อารมณ์ไว้ก่อนนะ',
+        'Enter Prototype': 'เริ่มต้นใช้งาน',
+        'Select a Stock': 'เลือกหุ้น',
+        'Choose an asset to invest.': 'เลือกหุ้นที่คุณสนใจ',
+        'Back': 'กลับ',
+        'PlanLock: ': 'PlanLock: ',
+        'Current Market Price: ': 'ราคาตลาดตอนนี้: ',
+        'Investment Amount ($ USD)': 'อยากลงทุนเท่าไหร่',
+        'Estimated Units: ': 'จำนวนหน่วยโดยประมาณ: ',
+        'Order Type': 'อยากซื้อที่ราคาไหน',
+        'Market': 'ราคาตลาดตอนนี้',
+        'Limit': 'ตั้งราคาเอง',
+        'Take Profit Target': 'เป้าหมายทำกำไร (Take Profit)',
+        'Expected Gain ($)': 'กำไรที่คาดหวัง ($)',
+        'Target Price ($)': 'ราคาเป้าหมาย ($)',
+        'Stop Loss Limit': 'จุดตัดขาดทุน (Stop Loss)',
+        'Expected Loss ($)': 'ขาดทุนที่ยอมรับได้ ($)',
+        'Stop Price ($)': 'ราคาตัดขาดทุน ($)',
+        'Investment Thesis': 'แนวคิดการลงทุน (Thesis)',
+        'Why this TP/SL?': 'ทำไมถึงเลือก TP/SL ราคานี้?',
+        'Investment Horizon': 'ระยะเวลาการลงทุน',
+        '7 Days': '7 วัน',
+        '30 Days': '30 วัน',
+        '90 Days': '90 วัน',
+        '1 Year': '1 ปี',
+        'If the price doesn\'t move by this time, you can review manually.': 'หากราคาไม่เคลื่อนไหวในเวลานี้ คุณสามารถทบทวนแผนเองได้',
+        'Lock Plan & View Chart': 'ล็อคแผนและดูกราฟ',
+        'Simulated Market': 'Simulated Market',
+        'Start Simulation': 'เริ่มจำลองสถานการณ์',
+        'Repeat from Beginning': 'เริ่มใหม่ตั้งแต่ต้น',
+        'Back to Adjust TP/SL': 'กลับไปปรับ TP/SL',
+        '⚠️ Your portfolio is down': '⚠️ พอร์ตของคุณกำลังขาดทุน',
+        'The stock has dropped significantly.<br><br>Does this change your original investment thesis?': 'ราคาหุ้นตกลงอย่างมีนัยสำคัญ<br><br>สิ่งนี้เปลี่ยนแปลงแนวคิดการลงทุนเดิมของคุณหรือไม่?',
+        'Review Plan': 'ทบทวนแผน',
+        'Wait 24 Hours': 'รอ 24 ชั่วโมง',
+        'Sell Anyway': 'ขายทิ้ง',
+
+        // Product-to-Company
+        '🏢 Companies': '🏢 รายชื่อหุ้น',
+        '🛍️ Products → Ownership': '🛍️ สินค้า ➔ เป็นเจ้าของ',
+        'Nike Air Force 1': 'Nike Air Force 1',
+        'Instead of $120 shoes on Shopee ➔ Own Nike Inc. (NKE)': 'แทนที่จะซื้อรองเท้าบน Shopee ➔ ซื้อหุ้น Nike Inc. (NKE)',
+        'iPhone 16 Pro': 'iPhone 16 Pro',
+        'Instead of gadget impulse buys ➔ Own Apple Inc. (AAPL)': 'แทนที่จะช้อปปิ้งแกดเจ็ตตามอารมณ์ ➔ เป็นเจ้าของ Apple Inc. (AAPL)',
+        'Daily Starbucks Latte': 'กาแฟ Starbucks ประจำวัน',
+        'Skip 20 cups of takeaway coffee ➔ Own Starbucks (SBUX)': 'งดกาแฟแก้วโปรด 20 แก้ว ➔ เป็นเจ้าของ Starbucks (SBUX)',
+        'Tesla Model Y': 'Tesla Model Y',
+        'Instead of luxury car payments ➔ Own Tesla equity (TSLA)': 'แทนที่จะจ่ายค่างวดรถหรู ➔ ถือหุ้น Tesla (TSLA)',
+        'GeForce RTX 4090': 'GeForce RTX 4090',
+        'Instead of $1,600 gaming gear ➔ Own Nvidia (NVDA)': 'แทนที่จะอัปการ์ดจอเล่นเกม ➔ เป็นเจ้าของผู้นำชิป AI Nvidia (NVDA)',
+
+        // Thesis & Strategy
+        'Strategy & Thesis Framework': 'กรอบกลยุทธ์ & แนวคิดการลงทุน',
+        '📈 Price-Based (Technical)': '📈 เทคนิคัล / พฤติกรรมราคา',
+        '🏢 Event-Based (Fundamentals)': '🏢 เหตุการณ์ / พื้นฐานธุรกิจ',
+        '📊 2-Year Historical Strategy Backtest': '📊 ย้อนดูผลตอบแทนย้อนหลัง 2 ปี',
+        'Simulated Edge': 'ความได้เปรียบจำลอง',
+        'Performance across similar technical setups over the last 24 months.': 'ประสิทธิภาพจากรูปแบบราคาคล้ายกันตลอด 24 เดือนที่ผ่านมา',
+        'Win Rate (2-Yr)': 'อัตราการชนะ (Win Rate)',
+        'Profit Factor': 'อัตราส่วนกำไร/ขาดทุน',
+        'Max Drawdown': 'การย่อตัวสูงสุด (Max DD)',
+        '2-Yr Strategy Return': 'ผลตอบแทนรวม 2 ปี',
+        '🏢 Intrinsic Value & Stress Test': '🏢 ประเมินมูลค่าแท้จริง & Stress Test',
+        'DCF Model': 'โมเดล DCF',
+        'Stress-test fair value against earnings shocks, dividends, and interest rates.': 'ทดสอบมูลค่าแท้จริงต่อผลประกอบการ, เงินปันผล และอัตราดอกเบี้ย',
+        'Base Intrinsic: ': 'มูลค่าพื้นฐาน: ',
+        'Safety Margin: ': 'ส่วนเผื่อความปลอดภัย: ',
+        'Earnings Shock:': 'ผลกระทบผลประกอบการ:',
+        'Dividend / Cashflow:': 'เงินปันผล / กระแสเงินสด:',
+        'Fed / Risk-Free Rate:': 'อัตราดอกเบี้ย Risk-Free:',
+        'Stress-Tested Value: ': 'มูลค่าหลัง Stress Test: ',
+
+        // Friction Modal
+        '✋ Sell Position Early': '✋ ขอขายหุ้นก่อนกำหนด',
+        '🛡️ Holdwise Reflection Check': '🛡️ ระบบเตือนสติก่อนขาย Holdwise',
+        'Review your thesis before making an emotional decision.': 'ทบทวนแนวคิดการลงทุนก่อนตัดสินใจด้วยอารมณ์',
+        'Current: ': 'ราคาปัจจุบัน: ',
+        'Your Original Investment Thesis:': 'แนวคิดการลงทุนเดิมที่คุณตั้งไว้:',
+        'AI Plan Reflection:': 'AI สะท้อนความคิดตามแผน:',
+        'Holdwise will never block your legal right to sell, but requires 5 seconds of calm reflection to curb panic.': 'Holdwise ไม่มีสิทธิ์ระงับการขายของคุณ แต่ขอเวลา 5 วินาทีให้คุณได้คิดทบทวนเพื่อลดอารมณ์ตื่นตระหนก',
+        'Stick to Plan (Keep Holding)': 'ทำตามแผนเดิม (ถือต่อ)',
+        'Sold Early (Panic Override) ⚠️': 'ขายก่อนกำหนด (Panic Override) ⚠️',
+        
+        // Dynamic strings
+        'Executing at Market Price: $': 'ดำเนินการที่ราคาตลาด: $',
+        'This limit is $': 'ราคานี้ต่ำกว่าราคาตลาด $',
+        ' below market.': '',
+        ' above market.': 'ราคานี้สูงกว่าราคาตลาด $',
+        'Buying at current market price.': 'ซื้อที่ราคาตลาดปัจจุบัน',
+        'Target Stock Price: $': 'ราคาเป้าหมาย: $',
+        'Expected Gain: $': 'กำไรที่คาดหวัง: $',
+        'Stop Stock Price: $': 'ราคาตัดขาดทุน: $',
+        'Expected Loss: $': 'ขาดทุนที่ยอมรับได้: $',
+        
+        'Status: Holding': 'สถานะ: ถือครอง',
+        'Simulating...': 'กำลังจำลองสถานการณ์...',
+        'Take Profit Hit! 🎉': 'ถึงจุดทำกำไรแล้ว! 🎉',
+        'Stop Loss Hit 🛑': 'ถึงจุดตัดขาดทุนแล้ว 🛑',
+        'Horizon Reached': 'ครบกำหนดเวลา',
+        'Waiting 24h...': 'กำลังรอ 24 ชม...',
+        'Sold Manually 🛑': 'ขายด้วยตัวเอง 🛑',
+        
+        // Placeholders
+        'Briefly propose why you invest in this stock...': 'อธิบายสั้นๆ ว่าทำไมคุณถึงเลือกลงทุนในหุ้นตัวนี้...',
+        'Reasoning for your chosen exit points...': 'เหตุผลสำหรับจุดออกที่คุณเลือก...'
+    };
+
+    function t(str) {
+        if (currentLang === 'th' && dict[str]) return dict[str];
+        return str;
+    }
+
+    function toggleLang() {
+        currentLang = currentLang === 'en' ? 'th' : 'en';
+        document.body.className = `lang-${currentLang}`;
+        
+        document.querySelectorAll('[data-en]').forEach(el => {
+            if(el.tagName === 'OPTION') {
+                el.innerText = t(el.getAttribute('data-en'));
+            } else {
+                el.innerHTML = t(el.getAttribute('data-en'));
+            }
+        });
+        
+        document.getElementById('thesisInput').placeholder = t('Briefly propose why you invest in this stock...');
+        document.getElementById('reasonInput').placeholder = t('Reasoning for your chosen exit points...');
+        
+        updateCalculations();
+        updateThesisEvaluation();
+        
+        if (simInterval) {
+             document.getElementById('simButton').innerText = t('Simulating...');
+        } else if (document.getElementById('simButton').style.display !== 'none') {
+             document.getElementById('simButton').innerText = t('Start Simulation');
+        }
+    }
+
+    let currentStockSymbol = 'AAPL';
+    let marketPrice = 150.25;
+    let currentUnits = 0;
+    let orderType = 'market';
+    let selectStockMode = 'company';
+    let thesisStrategy = 'price';
+    
+    // Stress Test parameters
+    const stressParams = {
+        earnings: 0,
+        dividend: 0,
+        rate: 0
+    };
+
+    const stockBaseData = {
+        'AAPL': { intrinsic: 168.00, thesis: 'Invest in ecosystem retention, recurring high-margin services, and AI edge device upgrade cycle.' },
+        'TSLA': { intrinsic: 235.00, thesis: 'Capture autonomy inflection, next-gen low-cost vehicle ramp, and energy storage grid margins.' },
+        'NVDA': { intrinsic: 495.00, thesis: 'CUDA moat dominance and explosive datacenter demand across enterprise LLM training clusters.' },
+        'NKE': { intrinsic: 94.00, thesis: 'Direct-to-consumer turnaround, product innovation cycle, and global sportswear brand pricing power.' },
+        'SBUX': { intrinsic: 108.00, thesis: 'Customer frequency resilience, international footprint growth, and predictable dividend cash returns.' }
+    };
+
+    let simInterval = null;
+    let chartData = [];
+    let currentCandle = null;
+    let currentLivePrice = 150.25;
+    
+    let tpValue = 0;
+    let slValue = 0;
+    let buyValue = 0;
+    let hasTriggeredCoolOff = false;
+    let frictionTimerInterval = null;
+
+    function goToPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        
+        if (simInterval) clearInterval(simInterval);
+    }
+
+    function setSelectStockMode(mode) {
+        selectStockMode = mode;
+        if (mode === 'company') {
+            document.getElementById('btnModeCompany').classList.add('active');
+            document.getElementById('btnModeProduct').classList.remove('active');
+            document.getElementById('stockListCompany').style.display = 'block';
+            document.getElementById('stockListProduct').style.display = 'none';
+            document.getElementById('selectStockSubtitle').innerText = t('Choose an asset to invest.');
+        } else {
+            document.getElementById('btnModeCompany').classList.remove('active');
+            document.getElementById('btnModeProduct').classList.add('active');
+            document.getElementById('stockListCompany').style.display = 'none';
+            document.getElementById('stockListProduct').style.display = 'block';
+            document.getElementById('selectStockSubtitle').innerText = currentLang === 'th' ? 
+                'เปลี่ยนเงินช้อปปิ้ง เป็นการเป็นเจ้าของกิจการที่คุณใช้จริง!' : 
+                'Shift from impulse consumer to owner. Invest in what you buy every day.';
+        }
+    }
+
+    function setThesisStrategy(type) {
+        thesisStrategy = type;
+        if (type === 'price') {
+            document.getElementById('btnThesisPrice').classList.add('active');
+            document.getElementById('btnThesisEvent').classList.remove('active');
+            document.getElementById('evalPriceCard').style.display = 'block';
+            document.getElementById('evalEventCard').style.display = 'none';
+        } else {
+            document.getElementById('btnThesisPrice').classList.remove('active');
+            document.getElementById('btnThesisEvent').classList.add('active');
+            document.getElementById('evalPriceCard').style.display = 'none';
+            document.getElementById('evalEventCard').style.display = 'block';
+        }
+        updateThesisEvaluation();
+    }
+
+    function selectStock(symbol, price, name, productName) {
+        currentStockSymbol = symbol;
+        marketPrice = price;
+        currentLivePrice = price;
+        
+        document.getElementById('planStockName').innerText = productName ? `${productName} (${symbol})` : name;
+        document.getElementById('marketPriceDisplay').innerText = marketPrice.toFixed(2);
+        
+        document.getElementById('buyAmountFiat').value = 1500;
+        document.getElementById('buyPrice').value = marketPrice.toFixed(2);
+        
+        // Populate default smart thesis based on product or asset
+        if (productName) {
+            document.getElementById('thesisInput').value = currentLang === 'th' ?
+                `เปลี่ยนเงินที่เคยอยากซื้อ ${productName} มาสะสมสัดส่วนความเป็นเจ้าของในหุ้น ${symbol} เพื่อให้เงินงอกเงยแทนที่จะหมดไปกับการบริโภคชั่วคราว` :
+                `Instead of spending on ${productName}, allocating capital to own the cashflow and equity of ${symbol}.`;
+        } else if (stockBaseData[symbol]) {
+            document.getElementById('thesisInput').value = stockBaseData[symbol].thesis;
+        }
+
+        setOrderType('market');
+        goToPage('page-planlock');
+        updateThesisEvaluation();
+    }
+    
+    function setOrderType(type) {
+        orderType = type;
+        if (type === 'market') {
+            document.getElementById('btnMarket').classList.add('active');
+            document.getElementById('btnLimit').classList.remove('active');
+            document.getElementById('limitInputDiv').style.display = 'none';
+            document.getElementById('buyPrice').value = marketPrice.toFixed(2);
+        } else {
+            document.getElementById('btnMarket').classList.remove('active');
+            document.getElementById('btnLimit').classList.add('active');
+            document.getElementById('limitInputDiv').style.display = 'block';
+        }
+        updateCalculations();
+        updateThesisEvaluation();
+    }
+
+    function updateCalculations() {
+        let buyPrice = parseFloat(document.getElementById('buyPrice').value) || 0;
+        if (orderType === 'market') buyPrice = marketPrice;
+
+        let buyAmountFiat = parseFloat(document.getElementById('buyAmountFiat').value) || 0;
+        
+        const compDiv = document.getElementById('priceComparison');
+        if (orderType === 'market') {
+            compDiv.innerText = `${t('Executing at Market Price: $')}${marketPrice.toFixed(2)}`;
+            compDiv.style.color = '#666';
+        } else {
+            if (buyPrice < marketPrice) {
+                if (currentLang === 'th') {
+                    compDiv.innerText = `${t('This limit is $')}${(marketPrice - buyPrice).toFixed(2)}`;
+                } else {
+                    compDiv.innerText = `${t('This limit is $')}${(marketPrice - buyPrice).toFixed(2)}${t(' below market.')}`;
+                }
+                compDiv.style.color = 'var(--success-color)';
+            } else if (buyPrice > marketPrice) {
+                if (currentLang === 'th') {
+                    compDiv.innerText = `${t(' above market.')}${(buyPrice - marketPrice).toFixed(2)}`;
+                } else {
+                    compDiv.innerText = `${t('This limit is $')}${(buyPrice - marketPrice).toFixed(2)}${t(' above market.')}`;
+                }
+                compDiv.style.color = 'var(--accent-color)';
+            } else {
+                compDiv.innerText = t('Buying at current market price.');
+                compDiv.style.color = '#666';
+            }
+        }
+
+        // Units
+        if (buyPrice > 0) {
+            currentUnits = buyAmountFiat / buyPrice;
+            document.getElementById('unitsDisplay').innerText = currentUnits.toFixed(4);
+        } else {
+            currentUnits = 0;
+            document.getElementById('unitsDisplay').innerText = '0.00';
+        }
+        
+        buyValue = buyPrice; // Set global
+
+        // Take Profit
+        const tpMode = document.getElementById('tpMode').value;
+        const tpInputVal = parseFloat(document.getElementById('tpInput').value) || 0;
+        
+        if (tpMode === 'fiat') {
+            tpValue = buyPrice + (tpInputVal / currentUnits);
+            document.getElementById('tpFeedback').innerText = `${t('Target Stock Price: $')}${tpValue.toFixed(2)}`;
+        } else {
+            tpValue = tpInputVal;
+            const gain = (tpValue - buyPrice) * currentUnits;
+            document.getElementById('tpFeedback').innerText = `${t('Expected Gain: $')}${Math.max(0, gain).toFixed(2)}`;
+        }
+
+        // Stop Loss
+        const slMode = document.getElementById('slMode').value;
+        const slInputVal = parseFloat(document.getElementById('slInput').value) || 0;
+        
+        if (slMode === 'fiat') {
+            slValue = buyPrice - (slInputVal / currentUnits);
+            document.getElementById('slFeedback').innerText = `${t('Stop Stock Price: $')}${Math.max(0, slValue).toFixed(2)}`;
+        } else {
+            slValue = slInputVal;
+            const loss = (buyPrice - slValue) * currentUnits;
+            document.getElementById('slFeedback').innerText = `${t('Expected Loss: $')}${Math.max(0, loss).toFixed(2)}`;
+        }
+
+        updateThesisEvaluation();
+    }
+
+    function setStressParam(type, value, btnEl) {
+        stressParams[type] = value;
+        
+        const row = btnEl.parentElement;
+        row.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
+        btnEl.classList.add('active');
+
+        if (type === 'earnings') {
+            document.getElementById('valEarningsLabel').innerText = value === 0 ? '0% In-Line' : (value > 0 ? '+15% Beat' : '-15% Miss');
+        } else if (type === 'dividend') {
+            document.getElementById('valDividendLabel').innerText = value === 0 ? 'Normal' : (value > 0 ? '+10% Growth' : '-20% Cut');
+        } else if (type === 'rate') {
+            document.getElementById('valRateLabel').innerText = value === 0 ? 'Base (4.5%)' : (value > 0 ? '3.0% Low' : '5.5% High');
+        }
+
+        updateThesisEvaluation();
+    }
+
+    function updateThesisEvaluation() {
+        const base = stockBaseData[currentStockSymbol] || { intrinsic: marketPrice * 1.1, thesis: '' };
+        
+        // 1. Price Backtest update
+        let rr = (tpValue - buyValue) / Math.max(1, (buyValue - slValue));
+        if (rr < 0.5) rr = 0.5;
+        let winRate = Math.min(78, Math.max(42, Math.round(52 + (2.5 - rr) * 10)));
+        let profitFactor = (rr * (winRate / 100) / Math.max(0.01, (100 - winRate) / 100)).toFixed(2);
+        let maxDd = (-(10 + Math.abs(2.2 - rr) * 2)).toFixed(1);
+        let ret2yr = ((winRate * rr * 0.8) - ((100 - winRate) * 0.4)).toFixed(1);
+        if (parseFloat(ret2yr) < 5) ret2yr = '18.4';
+
+        const winRateEl = document.getElementById('backtestWinRate');
+        if (winRateEl) {
+            winRateEl.innerText = `${winRate}%`;
+            document.getElementById('backtestProfitFactor').innerText = `${profitFactor}x`;
+            document.getElementById('backtestMaxDd').innerText = `${maxDd}%`;
+            document.getElementById('backtestReturn').innerText = `+${ret2yr}%`;
+            document.getElementById('winBar').style.width = `${winRate}%`;
+            document.getElementById('lossBar').style.width = `${100 - winRate}%`;
+
+            const insightText = currentLang === 'th' ?
+                `<b>ข้อคิดสำคัญจาก AI:</b> ในการทดสอบ 28 สภาวะตลาดตลอด 24 เดือนที่ผ่านมา การมีวินัยตามจุด Stop Loss คือปัจจัยสำคัญที่สุด การขายทิ้งด้วยอารมณ์กลัวทำให้กำไรสุทธิเฉลี่ยลดลงถึง 31%` :
+                `<b>AI Key Insight:</b> In 28 historical setups, strictly holding until TP or SL was what generated the +${ret2yr}% gain. Panicking out early reduced net returns by 31%.`;
+            document.getElementById('backtestInsight').innerHTML = insightText;
+        }
+
+        // 2. Event Stress Test update
+        const baseIntrinsic = base.intrinsic;
+        const totalImpact = stressParams.earnings + stressParams.dividend + stressParams.rate;
+        const stressedFair = baseIntrinsic * (1 + totalImpact);
+        const marginSafety = ((stressedFair - marketPrice) / marketPrice) * 100;
+
+        const baseIntrEl = document.getElementById('baseIntrinsicDisplay');
+        if (baseIntrEl) {
+            baseIntrEl.innerText = baseIntrinsic.toFixed(2);
+            const marginEl = document.getElementById('marginSafetyDisplay');
+            marginEl.innerText = `${marginSafety >= 0 ? '+' : ''}${marginSafety.toFixed(1)}%`;
+            marginEl.style.color = marginSafety >= 0 ? 'var(--success-color)' : 'var(--accent-color)';
+            document.getElementById('stressedFairValue').innerText = `$${stressedFair.toFixed(2)}`;
+
+            let verdict = '';
+            if (stressedFair > slValue) {
+                const buffer = (stressedFair - slValue).toFixed(2);
+                verdict = currentLang === 'th' ?
+                    `แม้อยู่ภายใต้ภาวะวิกฤตนี้ มูลค่าพื้นฐานของกิจการ ($${stressedFair.toFixed(2)}) ยังคงอยู่สูงกว่าจุด Stop Loss ของคุณ ($${slValue.toFixed(2)}) ถึง $${buffer} แนวคิดการลงทุนของคุณจึงยังไม่ถูกทำลาย` :
+                    `Even under this shock, the firm's intrinsic cash-flow floor ($${stressedFair.toFixed(2)}) remains comfortably above your Stop Loss ($${slValue.toFixed(2)}) by $${buffer}. Your thesis remains fundamentally solid.`;
+            } else {
+                verdict = currentLang === 'th' ?
+                    `ในภาวะวิกฤตที่รุนแรงนี้ มูลค่าแท้จริงย่อลงมาใกล้จุดตัดขาดทุน ($${slValue.toFixed(2)}) นี่คือเหตุผลที่ PlanLock บังคับให้คุณมี Stop Loss เพื่อปกป้องเงินทุน` :
+                    `Under this extreme shock, intrinsic value drops near your Stop Loss ($${slValue.toFixed(2)}). This confirms why your Stop Loss is a vital, non-negotiable safety net.`;
+            }
+            document.getElementById('stressTestVerdict').innerText = verdict;
+        }
+    }
+
+    function triggerSellFriction() {
+        if (simInterval) clearInterval(simInterval);
+
+        document.getElementById('frictionCurrentPrice').innerText = `$${currentLivePrice.toFixed(2)}`;
+        
+        const pnl = (currentLivePrice - buyValue) * currentUnits;
+        const pnlEl = document.getElementById('frictionPnL');
+        pnlEl.innerText = `${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`;
+        pnlEl.style.color = pnl >= 0 ? 'var(--success-color)' : 'var(--accent-color)';
+
+        let userThesis = document.getElementById('thesisInput').value.trim();
+        if (!userThesis) {
+            userThesis = currentLang === 'th' ?
+                'ไม่ได้ระบุแนวคิดการลงทุนที่ชัดเจน (เข้าซื้อด้วยแรงกระตุ้นชั่วคราว)' :
+                'No structured thesis provided (entered with impulse mindset).';
+        }
+        document.getElementById('frictionThesisDisplay').innerText = `"${userThesis}"`;
+
+        const distSL = Math.max(0, currentLivePrice - slValue);
+        const slBufferPct = ((distSL / currentLivePrice) * 100).toFixed(1);
+        const tpPotentialGain = Math.max(0, (tpValue - buyValue) * currentUnits);
+
+        let reflectionMsg = '';
+        if (currentLivePrice < buyValue) {
+            reflectionMsg = currentLang === 'th' ?
+                `⚠️ <b>ทบทวนสติ:</b> ราคาหุ้นกำลังย่อตัวตามคลื่นอารมณ์ตลาด แต่จุด Stop Loss ของคุณยังอยู่อีกไกลถึง <b>$${distSL.toFixed(2)}</b> (มีระยะปลอดภัยเหลือ <b>${slBufferPct}%</b>)<br><br>แนวคิดเดิมของคุณคือ: <i>"${userThesis}"</i><br><br>มีอะไรในพื้นฐานบริษัทที่พังทลายลงจริงหรือไม่ หรือคุณกำลังตื่นตระหนกเพียงเพราะเห็นแท่งเทียนสีแดง? แผนของคุณเตรียมรับความผันผวนนี้ไว้ตั้งแต่แรกแล้ว!` :
+                `⚠️ <b>Panic Check:</b> The stock is experiencing normal market fluctuation, but your Stop Loss is still <b>$${distSL.toFixed(2)}</b> away (<b>${slBufferPct}%</b> safety cushion remaining).<br><br>Your original thesis was: <i>"${userThesis}"</i><br><br>Has the actual business broken down, or are you just feeling the fear of red candles? Your plan explicitly accounted for this downside!`;
+        } else {
+            reflectionMsg = currentLang === 'th' ?
+                `⚠️ <b>ขายหมูเพราะกลัวเสียกำไร?</b> คุณมีกำไรที่ยังไม่รับรู้ <b>+$${pnl.toFixed(2)}</b> แต่เป้าหมาย Take Profit ($${tpValue.toFixed(2)}) ถูกวางไว้เพื่อคว้ากำไร <b>+$${tpPotentialGain.toFixed(2)}</b><br><br>การรีบขายก่อนกำหนดทำให้คุณตัดโอกาสทำกำไรก้อนใหญ่ ทำลายแต้มต่อในระยะยาวตามแผนของคุณ` :
+                `⚠️ <b>Premature Exit:</b> You currently have a modest gain of <b>+$${pnl.toFixed(2)}</b>, but your Take Profit target ($${tpValue.toFixed(2)}) is structured to capture <b>+$${tpPotentialGain.toFixed(2)}</b>.<br><br>Cutting your winning trade early ruins your risk-to-reward ratio and defeats the entire purpose of PlanLock.`;
+        }
+        document.getElementById('frictionAiReflection').innerHTML = reflectionMsg;
+
+        // Friction timer: 5-second mindfulness countdown
+        const overrideBtn = document.getElementById('btnOverrideSell');
+        overrideBtn.disabled = true;
+        let secondsLeft = 5;
+        
+        const updateBtnText = () => {
+            overrideBtn.innerText = currentLang === 'th' ?
+                `⏳ กำลังทบทวน: เหลือ ${secondsLeft} วินาที...` :
+                `⏳ Reflecting: ${secondsLeft}s remaining...`;
+        };
+        updateBtnText();
+
+        if (frictionTimerInterval) clearInterval(frictionTimerInterval);
+        frictionTimerInterval = setInterval(() => {
+            secondsLeft--;
+            if (secondsLeft > 0) {
+                updateBtnText();
+            } else {
+                clearInterval(frictionTimerInterval);
+                overrideBtn.disabled = false;
+                overrideBtn.innerText = currentLang === 'th' ?
+                    'ยอมละเมิดแผน & ยืนยันขาย (ปลดล็อคแล้ว)' :
+                    'Override Plan & Sell Anyway (Unlocked)';
+            }
+        }, 1000);
+
+        document.getElementById('aiSellFrictionModal').classList.add('active');
+    }
+
+    function closeSellFriction(doSell) {
+        if (frictionTimerInterval) clearInterval(frictionTimerInterval);
+        document.getElementById('aiSellFrictionModal').classList.remove('active');
+
+        if (doSell) {
+            endSimulation('Sold Early (Panic Override) ⚠️', '#fce8e6', 'var(--accent-color)');
+        } else {
+            updateStatusBadge(t('Status: Holding'), '#eee', 'var(--text-color)');
+            runSimulationResume();
+        }
+    }
+
+    function goToSimulation() {
+        goToPage('page-simulation');
+        
+        document.getElementById('repeatBtn').style.display = 'none';
+        document.getElementById('panicSellBtn').style.display = 'none';
+        document.getElementById('simButton').style.display = 'block';
+        document.getElementById('simButton').innerText = t("Start Simulation");
+        document.getElementById('simButton').disabled = false;
+        
+        document.getElementById('backBtn').style.display = 'block';
+        
+        hasTriggeredCoolOff = false;
+
+        currentLivePrice = buyValue;
+        document.getElementById('simCurrentPrice').innerText = `$${buyValue.toFixed(2)}`;
+        updateStatusBadge(t('Status: Holding'), '#eee', 'var(--text-color)');
+
+        setTimeout(initChart, 100); 
+    }
+
+    function generateHistoricalData(basePrice, days) {
+        const data = [];
+        let currentP = basePrice * 0.85; 
+        
+        for (let i = 0; i < days; i++) {
+            const drift = (basePrice - currentP) / (days - i);
+            const volatility = basePrice * 0.02;
+            const change = drift + (Math.random() - 0.5) * volatility;
+            
+            const open = currentP;
+            const close = currentP + change;
+            const high = Math.max(open, close) + Math.random() * volatility;
+            const low = Math.min(open, close) - Math.random() * volatility;
+            
+            data.push({ o: open, h: high, l: low, c: close });
+            currentP = close;
+        }
+        
+        const finalPoint = data[data.length - 1];
+        finalPoint.c = basePrice;
+        if (finalPoint.h < basePrice) finalPoint.h = basePrice;
+        if (finalPoint.l > basePrice) finalPoint.l = basePrice;
+        
+        return data;
+    }
+
+    // Zero-dependency Vanilla Canvas Candlestick Renderer
+    function drawCandlesticks(canvasId, data, tp, sl, entry) {
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        
+        let cssWidth = canvas.parentElement.clientWidth;
+        let cssHeight = canvas.parentElement.clientHeight;
+        if(cssWidth === 0) cssWidth = document.querySelector('.mobile-container').clientWidth - 48;
+        if(cssHeight === 0) cssHeight = 300;
+        
+        canvas.width = cssWidth * dpr;
+        canvas.height = cssHeight * dpr;
+        ctx.scale(dpr, dpr);
+        
+        ctx.clearRect(0, 0, cssWidth, cssHeight);
+        if(data.length === 0) return;
+
+        const padding = (tp - sl) * 0.1;
+        let minP = Math.min(sl - padding, ...data.map(d => d.l));
+        let maxP = Math.max(tp + padding, ...data.map(d => d.h));
+        
+        const mapY = (price) => cssHeight - 20 - ((price - minP) / (maxP - minP)) * (cssHeight - 40);
+        const candleWidth = Math.max((cssWidth / data.length) * 0.6, 2);
+        
+        const drawLine = (price, color, dash, label) => {
+            const y = mapY(price);
+            ctx.beginPath();
+            ctx.setLineDash(dash);
+            ctx.moveTo(0, y);
+            ctx.lineTo(cssWidth, y);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+            ctx.fillStyle = color;
+            ctx.font = '600 12px Inter, sans-serif';
+            ctx.fillText(`${label} $${price.toFixed(2)}`, 10, y - 5);
+        };
+        
+        drawLine(tp, '#188038', [5, 5], 'TP');
+        drawLine(sl, '#d93025', [5, 5], 'SL');
+        drawLine(entry, '#999999', [2, 2], 'Entry');
+
+        data.forEach((d, i) => {
+            const x = (cssWidth / data.length) * i + (cssWidth / data.length / 2);
+            const isUp = d.c >= d.o;
+            ctx.strokeStyle = isUp ? '#188038' : '#d93025';
+            ctx.fillStyle = isUp ? '#188038' : '#d93025';
+            
+            ctx.beginPath();
+            ctx.lineWidth = 1.5;
+            ctx.moveTo(x, mapY(d.h));
+            ctx.lineTo(x, mapY(d.l));
+            ctx.stroke();
+            
+            const yTop = mapY(Math.max(d.o, d.c));
+            const yBottom = mapY(Math.min(d.o, d.c));
+            const bodyHeight = Math.max(yBottom - yTop, 2);
+            ctx.fillRect(x - candleWidth/2, yTop, candleWidth, bodyHeight);
+        });
+    }
+
+    function initChart() {
+        chartData = generateHistoricalData(buyValue, 30);
+        currentCandle = { ...chartData[chartData.length - 1] };
+        drawCandlesticks('stockChart', chartData, tpValue, slValue, buyValue);
+    }
+
+    function updateStatusBadge(text, bg, color) {
+        const badge = document.getElementById('simStatus');
+        const translated = text.includes('Status:') ? `Status: ${t(text.split(': ')[1])}` : t(text);
+        badge.innerText = translated;
+        badge.style.background = bg;
+        badge.style.color = color;
+    }
+
+    function runSimulation() {
+        if(simInterval) clearInterval(simInterval);
+        
+        document.getElementById('simButton').disabled = true;
+        document.getElementById('simButton').innerText = t("Simulating...");
+        document.getElementById('panicSellBtn').style.display = 'block';
+        document.getElementById('backBtn').style.display = 'none'; 
+        updateStatusBadge('Status: Holding', '#eee', 'var(--text-color)');
+        
+        hasTriggeredCoolOff = false;
+        
+        let ticksCount = 0;
+        let dayCounter = 0;
+
+        simInterval = setInterval(() => {
+            ticksCount++;
+            
+            const changePercent = (Math.random() - 0.51) * 0.03; 
+            let close = currentCandle.c;
+            let newPrice = close * (1 + changePercent);
+            currentLivePrice = newPrice;
+            
+            if (ticksCount % 5 === 0) {
+                dayCounter++;
+                currentCandle = {
+                    o: close,
+                    h: Math.max(close, newPrice),
+                    l: Math.min(close, newPrice),
+                    c: newPrice
+                };
+                chartData.push(currentCandle);
+            } else {
+                currentCandle.h = Math.max(currentCandle.h, newPrice);
+                currentCandle.l = Math.min(currentCandle.l, newPrice);
+                currentCandle.c = newPrice;
+                chartData[chartData.length - 1] = currentCandle;
+            }
+            
+            let displayData = chartData;
+            if (displayData.length > 100) {
+                displayData = displayData.slice(displayData.length - 100);
+            }
+            
+            drawCandlesticks('stockChart', displayData, tpValue, slValue, buyValue);
+            document.getElementById('simCurrentPrice').innerText = `$${newPrice.toFixed(2)}`;
+
+            if (!hasTriggeredCoolOff && newPrice <= buyValue * 0.85 && newPrice > slValue) {
+                hasTriggeredCoolOff = true;
+                clearInterval(simInterval);
+                document.getElementById('coolingOffModal').classList.add('active');
+            }
+            else if (newPrice >= tpValue) {
+                endSimulation('Take Profit Hit! 🎉', '#e6f4ea', 'var(--success-color)');
+            } 
+            else if (newPrice <= slValue) {
+                endSimulation('Stop Loss Hit 🛑', '#fce8e6', 'var(--accent-color)');
+            }
+
+            if (dayCounter > 90 && simInterval) {
+                 endSimulation('Horizon Reached', '#fff3cd', '#856404');
+            }
+        }, 80);
+    }
+
+    function endSimulation(statusText, bgColor, textColor) {
+        clearInterval(simInterval);
+        updateStatusBadge(statusText, bgColor, textColor);
+        document.getElementById('simButton').style.display = 'none';
+        document.getElementById('panicSellBtn').style.display = 'none';
+        document.getElementById('repeatBtn').style.display = 'block';
+        document.getElementById('backBtn').style.display = 'none';
+    }
+
+    function closeModal(action) {
+        document.getElementById('coolingOffModal').classList.remove('active');
+        if(action === 'review') {
+            goToPage('page-planlock');
+        } else if(action === 'friction') {
+            triggerSellFriction();
+        } else if(action === 'wait') {
+            updateStatusBadge('Waiting 24h...', '#e8f0fe', '#1967d2');
+            
+            let close = currentCandle.c;
+            currentCandle = { o: close, h: close, l: close, c: close };
+            chartData.push(currentCandle);
+            drawCandlesticks('stockChart', chartData, tpValue, slValue, buyValue);
+
+            setTimeout(() => {
+                updateStatusBadge('Status: Holding', '#eee', 'var(--text-color)');
+                runSimulationResume();
+            }, 1000);
+        }
+    }
+
+    function runSimulationResume() {
+        let ticksCount = 0;
+        let dayCounter = 0;
+
+        document.getElementById('panicSellBtn').style.display = 'block';
+
+        simInterval = setInterval(() => {
+            ticksCount++;
+            const changePercent = (Math.random() - 0.48) * 0.03; 
+            let close = currentCandle.c;
+            let newPrice = close * (1 + changePercent);
+            currentLivePrice = newPrice;
+            
+            if (ticksCount % 5 === 0) {
+                dayCounter++;
+                currentCandle = {
+                    o: close,
+                    h: Math.max(close, newPrice),
+                    l: Math.min(close, newPrice),
+                    c: newPrice
+                };
+                chartData.push(currentCandle);
+            } else {
+                currentCandle.h = Math.max(currentCandle.h, newPrice);
+                currentCandle.l = Math.min(currentCandle.l, newPrice);
+                currentCandle.c = newPrice;
+                chartData[chartData.length - 1] = currentCandle;
+            }
+            
+            let displayData = chartData;
+            if (displayData.length > 100) {
+                displayData = displayData.slice(displayData.length - 100);
+            }
+            
+            drawCandlesticks('stockChart', displayData, tpValue, slValue, buyValue);
+            document.getElementById('simCurrentPrice').innerText = `$${newPrice.toFixed(2)}`;
+
+            if (newPrice >= tpValue) {
+                endSimulation('Take Profit Hit! 🎉', '#e6f4ea', 'var(--success-color)');
+            } else if (newPrice <= slValue) {
+                endSimulation('Stop Loss Hit 🛑', '#fce8e6', 'var(--accent-color)');
+            }
+
+            if (dayCounter > 90 && simInterval) {
+                 endSimulation('Horizon Reached', '#fff3cd', '#856404');
+            }
+        }, 80);
+    }
+    
+    function resetToBeginning() {
+        document.getElementById('buyAmountFiat').value = 1500;
+        document.getElementById('thesisInput').value = '';
+        document.getElementById('reasonInput').value = '';
+        goToPage('page-landing');
+    }
+    
+    // Init with AAPL defaults
+    updateCalculations();
+</script>
+
+</body>
+</html>
